@@ -21,6 +21,10 @@ function App() {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
 
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
+
   // ---------------- DASHBOARD STATS ----------------
 
   const [dashboardStats, setDashboardStats] = useState({
@@ -202,7 +206,68 @@ async function handleLogin(event) {
   // ============================================================
   // PROJECTS
   // ============================================================
+  async function createProject(event) {
+  event.preventDefault();
 
+  if (!projectName.trim()) {
+    setMessage("Project name is required.");
+    return;
+  }
+
+  const token = localStorage.getItem("access_token");
+  const userId = getUserIdFromToken();
+
+  if (!userId) {
+    setMessage("Could not identify logged-in user.");
+    return;
+  }
+
+  setCreatingProject(true);
+  setMessage("");
+
+  try {
+    const response = await fetch(`${API_URL}/projects`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: projectName,
+        description: projectDescription || null,
+        status: "PLANNING",
+        created_by: userId,
+      }),
+    });
+
+    if (response.status === 401) {
+      handleLogout();
+      return;
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.detail || "Could not create project");
+      return;
+    }
+
+    setProjects((previous) => [
+      ...previous,
+      data,
+    ]);
+
+    setProjectName("");
+    setProjectDescription("");
+
+    setMessage("Project created successfully.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Cannot connect to backend");
+  } finally {
+    setCreatingProject(false);
+  }
+}
   async function fetchProjects(token) {
     try {
       const response = await fetch(
@@ -2534,6 +2599,43 @@ if (!loggedIn) {
       <main className="dashboard-content">
 
         <h2>Dashboard</h2>
+        <section className="projects-section">
+
+  <h3>➕ Create New Project</h3>
+
+  <form onSubmit={createProject}>
+
+    <input
+      type="text"
+      placeholder="Project name"
+      value={projectName}
+      onChange={(event) =>
+        setProjectName(event.target.value)
+      }
+      required
+    />
+
+    <textarea
+      placeholder="Project description"
+      value={projectDescription}
+      onChange={(event) =>
+        setProjectDescription(event.target.value)
+      }
+      rows="4"
+    />
+
+    <button
+      type="submit"
+      disabled={creatingProject}
+    >
+      {creatingProject
+        ? "Creating..."
+        : "Create Project"}
+    </button>
+
+  </form>
+
+</section>
 
         <section
           style={{
