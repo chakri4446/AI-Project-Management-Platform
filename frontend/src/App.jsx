@@ -256,6 +256,10 @@ async function handleLogin(event) {
       ...previous,
       data,
     ]);
+    setDashboardStats((previous) => ({
+      ...previous,
+      totalProjects: previous.totalProjects + 1,
+    }));
 
     setProjectName("");
     setProjectDescription("");
