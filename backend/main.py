@@ -392,6 +392,33 @@ def create_requirement(
 
     return new_requirement
 
+@app.delete(
+    "/projects/{project_id}/requirements/{requirement_id}"
+)
+def delete_requirement(
+    project_id: int,
+    requirement_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_manager)
+):
+
+    requirement = db.query(Requirement).filter(
+        Requirement.id == requirement_id,
+        Requirement.project_id == project_id
+    ).first()
+
+    if requirement is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Requirement not found"
+        )
+
+    db.delete(requirement)
+    db.commit()
+
+    return {
+        "message": "Requirement deleted successfully"
+    }
 
 @app.get(
     "/projects/{project_id}/requirements",
