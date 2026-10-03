@@ -343,13 +343,50 @@ def delete_project(
             detail="Project not found"
         )
 
+    # Get all tasks belonging to this project
+    tasks = db.query(Task).filter(
+        Task.project_id == project_id
+    ).all()
+
+    # Delete comments belonging to those tasks
+    for task in tasks:
+        db.query(Comment).filter(
+            Comment.task_id == task.id
+        ).delete()
+
+    # Delete tasks
+    db.query(Task).filter(
+        Task.project_id == project_id
+    ).delete()
+
+    # Delete requirements
+    db.query(Requirement).filter(
+        Requirement.project_id == project_id
+    ).delete()
+
+    # Delete sprints
+    db.query(Sprint).filter(
+        Sprint.project_id == project_id
+    ).delete()
+
+    # Delete project members
+    db.query(ProjectMember).filter(
+        ProjectMember.project_id == project_id
+    ).delete()
+
+    # Delete risks
+    db.query(Risk).filter(
+        Risk.project_id == project_id
+    ).delete()
+
+    # Finally delete the project
     db.delete(project)
+
     db.commit()
 
     return {
-        "message": "Project deleted successfully"
+        "message": "Project and related data deleted successfully"
     }
-
 
 # ============================================================
 # REQUIREMENTS
