@@ -272,6 +272,58 @@ async function handleLogin(event) {
     setCreatingProject(false);
   }
 }
+const deleteProject = async (projectId) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this project?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_URL}/projects/${projectId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      }
+    );
+
+    if (response.status === 401) {
+      handleLogout();
+      return;
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.detail || "Could not delete project");
+      return;
+    }
+
+    setProjects((previous) =>
+      previous.filter(
+        (project) => project.id !== projectId
+      )
+    );
+
+    setDashboardStats((previous) => ({
+      ...previous,
+      totalProjects: Math.max(
+        0,
+        previous.totalProjects - 1
+      ),
+    }));
+
+    setMessage("Project deleted successfully.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Cannot connect to backend");
+  }
+};
   async function fetchProjects(token) {
     try {
       const response = await fetch(
@@ -2750,6 +2802,17 @@ if (!loggedIn) {
                   >
                     Click to view project →
                   </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteProject(project.id);
+                    }}
+                    style={{
+                      marginTop: "10px",
+                    }}
+                  >
+                    🗑️ Delete Project
+                  </button>
 
                 </div>
 
