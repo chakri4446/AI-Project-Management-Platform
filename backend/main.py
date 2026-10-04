@@ -429,6 +429,37 @@ def create_requirement(
 
     return new_requirement
 
+@app.put(
+    "/projects/{project_id}/requirements/{requirement_id}/analysis",
+    response_model=RequirementResponse
+)
+def update_requirement_analysis(
+    project_id: int,
+    requirement_id: int,
+    requirement_data: RequirementCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_manager)
+):
+    requirement = db.query(Requirement).filter(
+        Requirement.id == requirement_id,
+        Requirement.project_id == project_id
+    ).first()
+
+    if requirement is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Requirement not found"
+        )
+
+    requirement.analysis_result = (
+        requirement_data.requirement_text
+    )
+
+    db.commit()
+    db.refresh(requirement)
+
+    return requirement
+
 @app.delete(
     "/projects/{project_id}/requirements/{requirement_id}"
 )

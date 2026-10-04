@@ -38,6 +38,8 @@ function App() {
   // ---------------- REQUIREMENTS ----------------
 
   const [requirements, setRequirements] = useState([]);
+  const [editingAnalysisId, setEditingAnalysisId] = useState(null);
+  const [editedAnalysis, setEditedAnalysis] = useState("");
   const [loadingRequirements, setLoadingRequirements] = useState(false);
 
   const [newRequirement, setNewRequirement] = useState("");
@@ -523,6 +525,57 @@ const deleteProject = async (projectId) => {
       setAddingRequirement(false);
     }
   }
+  const updateRequirementAnalysis = async (
+  projectId,
+  requirementId
+) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/projects/${projectId}/requirements/${requirementId}/analysis`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({
+          requirement_text: editedAnalysis,
+        }),
+      }
+    );
+
+    if (response.status === 401) {
+      handleLogout();
+      return;
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.detail || "Could not update AI analysis");
+      return;
+    }
+
+    setRequirements((previous) =>
+      previous.map((requirement) =>
+        requirement.id === requirementId
+          ? {
+              ...requirement,
+              analysis_result: data.analysis_result,
+            }
+          : requirement
+      )
+    );
+
+    setEditingAnalysisId(null);
+    setEditedAnalysis("");
+
+    setMessage("AI analysis updated successfully.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Cannot connect to backend");
+  }
+};
 
   // ============================================================
   // TASKS
@@ -1791,12 +1844,12 @@ if (!loggedIn) {
                           {requirement.id}
                         </h3>
 
+                        {/* Original Requirement */}
                         <p>
-                          {
-                            requirement.requirement_text
-                          }
+                          {requirement.requirement_text}
                         </p>
 
+                        {/* AI Analysis */}
                         {requirement.analysis_result && (
                           <div className="ai-analysis">
 
@@ -1804,11 +1857,83 @@ if (!loggedIn) {
                               🤖 AI Analysis
                             </strong>
 
-                            <pre>
-                              {
-                                requirement.analysis_result
-                              }
-                            </pre>
+                            {editingAnalysisId === requirement.id ? (
+
+                              <>
+                                <textarea
+                                  value={editedAnalysis}
+                                  onChange={(event) =>
+                                    setEditedAnalysis(
+                                      event.target.value
+                                    )
+                                  }
+                                  rows={10}
+                                  style={{
+                                    width: "100%",
+                                    marginTop: "10px",
+                                    padding: "10px",
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+
+                                <div
+                                  style={{
+                                    marginTop: "10px",
+                                  }}
+                                >
+
+                                  <button
+                                    onClick={() =>
+                                      updateRequirementAnalysis(
+                                        selectedProject.id,
+                                        requirement.id
+                                      )
+                                    }
+                                  >
+                                    💾 Save
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      setEditingAnalysisId(null);
+                                      setEditedAnalysis("");
+                                    }}
+                                    style={{
+                                      marginLeft: "10px",
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+
+                                </div>
+                              </>
+
+                            ) : (
+
+                              <>
+                                <pre>
+                                  {requirement.analysis_result}
+                                </pre>
+
+                                <button
+                                  onClick={() => {
+                                    setEditingAnalysisId(
+                                      requirement.id
+                                    );
+
+                                    setEditedAnalysis(
+                                      requirement.analysis_result
+                                    );
+                                  }}
+                                  style={{
+                                    marginTop: "10px",
+                                  }}
+                                >
+                                  ✏️ Edit AI Analysis
+                                </button>
+                              </>
+
+                            )}
 
                           </div>
                         )}
